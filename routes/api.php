@@ -3,6 +3,8 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\PermissionController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -25,6 +27,8 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('logout', [AuthController::class, 'logout']);
     Route::get('user', [AuthController::class, 'user']);
 
-    Route::resource('roles', RoleController::class);
-    Route::resource('users', UserController::class)->except(['create', 'edit']);
+    Route::get('role-list', [RoleController::class, 'getList']);
+    Route::get('role-permissions/{id}', [PermissionController::class, 'getRolePermissions']);
+    Route::put('/role-permissions', [PermissionController::class, 'updateRolePermissions']);
+
 });
