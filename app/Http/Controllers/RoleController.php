@@ -17,31 +17,7 @@ class RoleController extends Controller
      */
     public function index()
     {
-        $orderColumn = request('order_column', 'created_at');
-        if (!in_array($orderColumn, ['id', 'name', 'created_at'])) {
-            $orderColumn = 'created_at';
-        }
-        $orderDirection = request('order_direction', 'desc');
-        if (!in_array($orderDirection, ['asc', 'desc'])) {
-            $orderDirection = 'desc';
-        }
-        $roles = Role::
-            when(request('search_id'), function ($query) {
-                $query->where('id', request('search_id'));
-            })
-            ->when(request('search_title'), function ($query) {
-                $query->where('name', 'like', '%'.request('search_title').'%');
-            })
-            ->when(request('search_global'), function ($query) {
-                $query->where(function($q) {
-                    $q->where('id', request('search_global'))
-                        ->orWhere('name', 'like', '%'.request('search_global').'%');
-
-                });
-            })
-            ->orderBy($orderColumn, $orderDirection)
-            ->paginate(50);
-
+        $roles = Role::all();
         return RoleResource::collection($roles);
     }
 
@@ -53,7 +29,7 @@ class RoleController extends Controller
      */
     public function store(StoreRoleRequest $request)
     {
-        $this->authorize('role-create');
+        // $this->authorize('role-create');
 
         $role = new Role();
         $role->name = $request->name;
@@ -64,21 +40,8 @@ class RoleController extends Controller
         }
 
         return response()->json(['status' => 405, 'success' => false]);
-
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return RoleResource
-     */
-    public function show(Role $role)
-    {
-        $this->authorize('role-edit');
-
-        return new RoleResource($role);
-    }
 
     /**
      * Update the specified resource in storage.
@@ -90,7 +53,7 @@ class RoleController extends Controller
      */
     public function update(Role $role, StoreRoleRequest $request)
     {
-        $this->authorize('role-edit');
+        //$this->authorize('role-edit');
 
         $role->name = $request->name;
 
@@ -107,8 +70,9 @@ class RoleController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy(Role $role) {
-        $this->authorize('role-delete');
+    public function destroy(Role $role)
+    {
+       // $this->authorize('role-delete');
         $role->delete();
 
         return response()->noContent();

@@ -3,18 +3,25 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Notifications\ForgotPassword;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
-use App\Helpers\Helper;
-use Carbon\Carbon;
-use Exception;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class AuthController extends Controller
 {
+
+    /**
+     * Display a listing of the resource.
+     *
+     * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection
+     */
+    public function index()
+    {
+        $users = User::paginate(10);
+        return $users;
+    }
+
     /**
      * Create user
      *
@@ -26,45 +33,23 @@ class AuthController extends Controller
      */
     public function register(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string',
-            'email' => 'required|string|unique:users',
-            'password' => 'required|string',
-            'c_password' => 'required|same:password',
-        ]);
 
-        if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 400);
-        }
-
-        $user = new User([
-            'name'  => $request->name,
+        $user = User::create([
+            'name' => $request->name,
             'email' => $request->email,
-            'password' => bcrypt($request->password),
-            'phone_number' => $request->phone_number,
-            'address' => $request->address,
-            'state' => $request->state,
-            'zip_code' => $request->zip_code,
-            'country' => $request->country,
-            'language' => $request->language,
-            'timezone' => $request->timezone,
-            'currency' => $request->currency
+            'password' => bcrypt('password'),
         ]);
-        $user->save();
-        $tokenResult = $user->createToken('Personal Access Token');
-        $token = $tokenResult->plainTextToken;
 
-        $userAbilities = [
-            'create_post',
-            'edit_post',
-            'delete_post',
-        ];
+        if ($user) {
+            $role = Role::find($request->role_id);
+            if ($role) {
+                $user->assignRole($role);
+            }
+        }
 
         return response()->json([
             'message' => 'Successfully created user!',
-            'accessToken' => $token,
-            'userAbilities' => $userAbilities,
-            'userData' => Auth::user()
+            'userData' => Auth::user(),
         ], 201);
     }
 
@@ -137,61 +122,5 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Successfully logged out'
         ]);
-    }
-
-    public function forgotPassword(Request $request) {
-
-        $email = $request->email;
-
-        $token = Helper::generateRandomString(20);
-
-        $user = User::where('email', $email)->first();
-
-        if($user) {
-
-            $messages["greeting"] = "Dear {$user->name}";
-            $messages["message"] = "here is link to change your password";
-            $messages["link"] = "http://localhost:5173/change-password/".$token;
-
-            try {
-                $user->notify(new ForgotPassword($messages));
-
-                DB::table('password_reset_tokens')->where(['email'=> $request->email])->delete();
-
-                DB::table('password_reset_tokens')->insert([
-                    'email' => $email,
-                    'token' => $token,
-                    'created_at' => Carbon::now()
-                ]);
-            } catch(Exception $e) {
-                return response()->json(['message' => $e->getMessage()]);
-            }
-
-            return response()->json(['success' => true, 'message' => 'forgot password link send to email successfully']);
-
-        } else {
-
-            return response()->json(['error' => true, 'message' => 'User not found']);
-        }
-    }
-
-    public function changePassword(Request $request) {
-
-        $request->validate([
-            'password' => 'required|string|min:6|confirmed',
-            'password_confirmation' => 'required'
-        ]);
-
-        $updatePassword = DB::table('password_reset_tokens')->where(['token' => $request->token])->first();
-
-        if(!$updatePassword){
-            return response()->json(['error' => true, 'message' => 'Invalid token']);
-        }
-
-        $user = User::where('email', $updatePassword->email)->update(['password' => Hash::make($request->password)]);
-
-        DB::table('password_reset_tokens')->where(['email'=> $updatePassword->email])->delete();
-
-        return response()->json(['success' => true, 'message' => 'Your password has been changed!']);
     }
 }

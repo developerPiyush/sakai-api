@@ -13,6 +13,8 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, HasRoles;
 
+    protected $appends = ['rolename'];
+
     /**
      * The attributes that are mass assignable.
      *
@@ -43,4 +45,10 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    public function getRoleNameAttribute()
+    {
+        $role = $this->getRoleNames()->first();
+        return $role ?? 'No Role';
+    }
 }
