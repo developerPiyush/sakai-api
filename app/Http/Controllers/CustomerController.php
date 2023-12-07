@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Customer;
+use App\Models\Notes;
+use Auth;
 use Illuminate\Http\Request;
 
 class CustomerController extends Controller
@@ -27,7 +30,10 @@ class CustomerController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $customerData = $request->all();
+        $customerData['created_by'] = Auth::id();
+        $customer = Customer::create($customerData);
+        return response()->json(['message' => 'Customer created successfully', 'data' => $customer], 201);
     }
 
     /**
